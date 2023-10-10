@@ -1,36 +1,38 @@
-use actix_web::{get, post, App, HttpResponse, HttpServer, Responder};
-use mongodb::Client;
+use std::sync::Arc;
+use crate::model::{seed_db};
+use actix_web::{get, App, HttpResponse, HttpServer, Responder, middleware, HttpRequest, web::{Data}};
 use mongodb::options::{ClientOptions, ResolverConfig};
+use mongodb::Client;
+use crate::routes::{change_item_status, get_all_items, ping_test_route};
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
+mod model;
+mod routes;
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
+const DB_NAME: &str = "inventory_tools";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let _ = dotenv::dotenv();
-    let mdb_uri = std::env::var("MONGODB_URI").expect("YOU MUST SET THE MONGODB_URI ENV VARIABLE!");
+    let _ = dotenv::dotenv().ok();
 
+    let mdb_uri = std::env::var("MONGODB_URI").expect("YOU MUST SET THE MONGODB_URI ENV VARIABLE!");
     println!("{}", mdb_uri);
 
-    let options =
-        ClientOptions::parse_with_resolver_config(&mdb_uri, ResolverConfig::cloudflare())
-            .await
-            .unwrap();
+    let options = ClientOptions::parse_with_resolver_config(&mdb_uri, ResolverConfig::cloudflare())
+        .await
+        .unwrap();
 
+    let mdb_client = Client::with_options(options).unwrap();
+    let db = Arc::new(mdb_client.database(DB_NAME));
 
-    let mongodb = Client::with_options(options).unwrap();
+    seed_db(&db).await;
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
-            .service(hello)
-            .service(echo)
+            .app_data(Data::new(db.clone()))
+            .wrap(middleware::Logger::default())
+            .service(get_all_items)
+            .service(ping_test_route)
+            .service(change_item_status)
     })
         .bind(("127.0.0.1", 3000))?
         .run()
