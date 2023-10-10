@@ -5,7 +5,7 @@ use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use mongodb::{bson, Database};
 use serde::{Deserialize, Serialize};
-use crate::model::{Item, ItemStatus};
+use crate::models::item_model::{Item, ItemStatus};
 
 #[get("/ping")]
 async fn ping_test_route() -> impl Responder {

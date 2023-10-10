@@ -1,12 +1,13 @@
 use std::sync::Arc;
-use crate::model::{seed_db};
-use actix_web::{get, App, HttpResponse, HttpServer, Responder, middleware, HttpRequest, web::{Data}};
+use crate::seed_db::{seed_db};
+use actix_web::{App, HttpServer, Responder, middleware, web::{Data}};
 use mongodb::options::{ClientOptions, ResolverConfig};
 use mongodb::Client;
 use crate::routes::{change_item_status, get_all_items, ping_test_route};
 
-mod model;
+mod seed_db;
 mod routes;
+mod models;
 
 const DB_NAME: &str = "inventory_tools";
 
