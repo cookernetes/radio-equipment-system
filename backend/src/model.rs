@@ -42,8 +42,6 @@ pub async fn seed_db(db: &Database) {
     let coll = db.collection::<Item>("items");
     let doc_count = coll.count_documents(None, None).await.unwrap();
 
-    println!("{}", std::env::var("SEED_IMAGE_URL").unwrap());
-
     if doc_count == 0 {
         println!("Seeding DB with initial items...");
 
@@ -52,7 +50,7 @@ pub async fn seed_db(db: &Database) {
             name: "Example Item 1".to_string(),
             image: std::env::var("SEED_IMAGE_URL").ok(),
             quantity: 0,
-            borrower_ids: vec!["TODO:test_ID".to_string()],
+            borrower_ids: vec![],
             status: ItemStatus::Available
         };
 

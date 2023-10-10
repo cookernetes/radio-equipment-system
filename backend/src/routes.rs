@@ -3,7 +3,7 @@ use futures::stream::{StreamExt, TryStreamExt};
 use std::sync::Arc;
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
-use mongodb::Database;
+use mongodb::{bson, Database};
 use serde::{Deserialize, Serialize};
 use crate::model::{Item, ItemStatus};
 
@@ -29,15 +29,28 @@ struct ChangeItemStatusRequestBody {
     new_status: ItemStatus,
 }
 
-/*#[patch("/change-item-status")]
-async fn change_item_status(db: web::Data<Arc<Database>>) -> impl Responder {
-    // Modify with mongodb in database, and if item is not found - send error message & HTTP error code accordingly.
+#[patch("/change-item-status")]
+async fn change_item_status(db: web::Data<Arc<Database>>, body: web::Json<ChangeItemStatusRequestBody>) -> impl Responder {
     let collection = db.collection::<Item>("items");
 
-    let filter = doc! {"name": };
-    let update = doc! {};
-    collection.update_one(doc! {}, doc! {})
-}*/
+    let update_result = collection.update_one(
+        doc! {
+            "_id": body.item_id
+        },
+        doc! {
+            "$set": {
+                "status": bson::to_bson(&body.new_status).unwrap()
+            }
+        },
+        None,
+    ).await.unwrap();
+
+    if update_result.matched_count == 0 {
+        HttpResponse::NotFound().body("Error: No documents found to modify.")
+    } else {
+        HttpResponse::Ok().into()
+    }
+}
 
 #[get("/simple-stats")]
 async fn get_simple_stats(db: web::Data<Arc<Database>>) -> impl Responder {
