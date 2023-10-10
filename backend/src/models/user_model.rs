@@ -2,9 +2,15 @@ use serde::{Deserialize, Serialize};
 use mongodb::bson::oid::ObjectId;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum UserRoleKind {
+pub enum UserRoleType {
     Admin,
     User,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UserRawPhysicalToken {
+    pub username: String,
+    pub pass_hash: String
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -14,5 +20,6 @@ pub struct User {
     pub full_name: String,
     pub username: String,
     pub pass_hash: String,
-    pub role: UserRoleKind,
+    pub physical_id_qr_token: String,
+    pub role: UserRoleType,
 }

@@ -52,6 +52,7 @@ async fn change_item_status(db: web::Data<Arc<Database>>, body: web::Json<Change
     }
 }
 
+// TODO: Below
 #[get("/simple-stats")]
 async fn get_simple_stats(db: web::Data<Arc<Database>>) -> impl Responder {
     return HttpResponse::InternalServerError();
