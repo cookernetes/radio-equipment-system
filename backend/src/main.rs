@@ -11,8 +11,9 @@ mod seed_db;
 mod routes;
 mod models;
 
-use models::user_model::UserRawPhysicalToken;
-use routes::{change_item_status, get_all_items, ping_test_route, ret_user_id_qr, login};
+use routes::auth::{login, ping_test_route, ret_user_id_qr};
+use routes::items::{change_item_status, get_all_items};
+use crate::routes::items::create_item;
 
 const DB_NAME: &str = "inventory_tools";
 
@@ -57,6 +58,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_all_items)
             .service(change_item_status)
             .service(login)
+            .service(create_item)
     })
         .bind(("127.0.0.1", 3000))?
         .run()

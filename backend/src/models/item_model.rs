@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use mongodb::bson::oid::ObjectId;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum ItemStatus {
     InUse,
     Available,
