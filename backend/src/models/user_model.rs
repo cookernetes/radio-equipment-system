@@ -9,6 +9,7 @@ pub enum UserRoleType {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserRawPhysicalToken {
+    pub user_id: ObjectId,
     pub username: String,
     pub pass_hash: String
 }
