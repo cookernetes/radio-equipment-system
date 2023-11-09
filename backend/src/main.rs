@@ -1,13 +1,18 @@
 use std::sync::Arc;
 use crate::seed_db::{seed_db};
-use actix_web::{App, HttpServer, Responder, middleware, web::{Data}};
+use actix_web::{App, HttpServer, Responder, middleware, web::{Data}, cookie::{Key, time}};
+use actix_session::{SessionMiddleware, storage::CookieSessionStore};
+use actix_session::config::PersistentSession;
 use mongodb::options::{ClientOptions, ResolverConfig};
 use mongodb::Client;
-use crate::routes::{change_item_status, get_all_items, ping_test_route};
 
+mod utils;
 mod seed_db;
 mod routes;
 mod models;
+
+use models::user_model::UserRawPhysicalToken;
+use routes::{change_item_status, get_all_items, ping_test_route, ret_user_id_qr, login};
 
 const DB_NAME: &str = "inventory_tools";
 
@@ -25,15 +30,33 @@ async fn main() -> std::io::Result<()> {
     let mdb_client = Client::with_options(options).unwrap();
     let db = Arc::new(mdb_client.database(DB_NAME));
 
-    seed_db(&db).await;
+    seed_db(&db).await.expect("DB SEEDING FAILED! ");
+
+    // let sessions: Arc<Vec<UserRawPhysicalToken>> = Arc::new(vec![]);
+
+    let secret_key: Key = Key::generate();
 
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(db.clone()))
             .wrap(middleware::Logger::default())
-            .service(get_all_items)
+            .wrap(
+                SessionMiddleware::builder(
+                    CookieSessionStore::default(), secret_key.clone()
+                )
+                    // Short-lived session expires after 2 minutes for security.
+                    .session_lifecycle(
+                        PersistentSession::default()
+                            .session_ttl(time::Duration::minutes(1))
+                    )
+                    .build()
+            )
+            .app_data(Data::new(db.clone()))
+            // .app_data(Data::new(sessions))
             .service(ping_test_route)
+            .service(ret_user_id_qr)
+            .service(get_all_items)
             .service(change_item_status)
+            .service(login)
     })
         .bind(("127.0.0.1", 3000))?
         .run()
