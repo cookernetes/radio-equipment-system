@@ -2,10 +2,11 @@ use futures::stream::StreamExt;
 use std::sync::Arc;
 use actix_web::{patch, get, post, web, Responder, HttpResponse};
 use mongodb::bson::oid::ObjectId;
-use mongodb::bson::{self, doc};
+use mongodb::bson::{self, doc, Document};
 use mongodb::Database;
 use serde::{Serialize, Deserialize};
 use crate::models::item_model::{Item, ItemStatus};
+use crate::models::location_model::Location;
 
 #[get("/items")]
 pub async fn get_all_items(db: web::Data<Arc<Database>>) -> impl Responder {
@@ -32,7 +33,7 @@ pub async fn create_item(db: web::Data<Arc<Database>>, body: web::Json<CreateIte
     let collection = db.collection::<Item>("items");
 
     // TODO: in the future, can we/should we add more guards to items being created to avoid clones?
-    if let Ok(Some(i)) = collection.find_one(doc!{ "name": body.name.clone().trim() }, None).await { return Ok(HttpResponse::Conflict().finish()) }
+    if let Ok(Some(_)) = collection.find_one(doc! { "name": body.name.clone().trim() }, None).await { return Ok(HttpResponse::Conflict().finish()); }
 
     let item_status = match &body.status {
         None => ItemStatus::Available,
@@ -84,6 +85,49 @@ pub async fn change_item_status(db: web::Data<Arc<Database>>, body: web::Json<Ch
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct ChangeItemLocationBody {
+    /**
+    ID of item to modify
+     */
+    item_id: ObjectId,
+    /**
+    ID of new location
+     */
+    new_location: ObjectId,
+}
+
+#[patch("/change-item-location")]
+pub async fn change_item_location(db: web::Data<Arc<Database>>, body: web::Json<ChangeItemLocationBody>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+    let items_collection = db.collection::<Item>("items");
+    let locations_collection = db.collection::<Location>("locations");
+
+    let item_in_db = match items_collection.find_one(doc! { "_id": &body.item_id.clone() }, None).await? {
+        None => return Ok(HttpResponse::NotFound().finish()),
+        Some(item) => item
+    };
+
+    if body.new_location == item_in_db.location_id { return Ok(HttpResponse::Ok().body("Location unchanged")) }
+
+    if let None = locations_collection.find_one(doc! { "_id": body.new_location.clone() }, None).await? {
+        return Ok(HttpResponse::NotFound().body("New location does not exist."));
+    }
+
+    match items_collection.update_one(
+        doc! {
+            "_id": item_in_db.id
+        },
+        doc! {
+            "$set": {
+                "location_id": body.new_location.clone()
+            }
+        },
+        None,
+    ).await {
+        Ok(_) => Ok(HttpResponse::Ok().body(format!("New location set with ID {}", body.new_location))),
+        Err(_) => Ok(HttpResponse::InternalServerError().finish())
+    }
+}
 
 // TODO: Below
 #[get("/simple-stats")]
