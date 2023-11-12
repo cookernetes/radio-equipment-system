@@ -2,7 +2,7 @@ use std::str::FromStr;
 use actix_web::{delete, HttpResponse, patch, post, web};
 use std::sync::Arc;
 use mongodb::bson::doc;
-use mongodb::bson::oid::{Error, ObjectId};
+use mongodb::bson::oid::ObjectId;
 use mongodb::{bson, Database};
 use serde::{Deserialize, Serialize};
 use crate::models::location_model::{Location, LocationStatus};
