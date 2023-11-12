@@ -14,7 +14,7 @@ mod models;
 use routes::auth::{login, ping_test_route, ret_user_id_qr};
 use routes::items::{change_item_status, get_all_items};
 use crate::routes::items::{change_item_location, create_item};
-use crate::routes::locations::create_location;
+use crate::routes::locations::{create_location, delete_location, edit_location_status};
 
 const DB_NAME: &str = "inventory_tools";
 
@@ -58,6 +58,8 @@ async fn main() -> std::io::Result<()> {
             .service(create_item)
             .service(change_item_location)
             .service(create_location)
+            .service(edit_location_status)
+            .service(delete_location)
     })
         .bind(("127.0.0.1", 3000))?
         .run()
